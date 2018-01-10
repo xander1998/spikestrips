@@ -36,6 +36,7 @@ AddEventHandler("Spikestrips:SpawnSpikes", function(config, amount)
 				SetEntityCoords(spike, plyCoords.x, plyCoords.y, plyCoords.z - spikeHeight + 0.05, 0.0, 0.0, 0.0, 0.0)
 				SetEntityHeading(spike, plyHead)
 				SetEntityAsMissionEntity(spike, 1, 1)
+				SetEntityCollision(spike, false, false)
 				table.insert(SpawnedSpikes, spike)
 				SpikesSpawned = true
 			end
@@ -62,7 +63,17 @@ RegisterNetEvent("Spikestrips:RemoveSpikes")
 AddEventHandler("Spikestrips:RemoveSpikes", function()
 	if SpikesSpawned then
 		for i = 1, #SpawnedSpikes do
-			DeleteEntity(SpawnedSpikes[i])
+			local netId = NetworkGetNetworkIdFromEntity(SpawnedSpikes[i])
+
+			NetworkRequestControlOfNetworkId(netId)
+			while not NetworkHasControlOfNetworkId(netId) do
+				Citizen.Wait(0)
+				NetworkRequestControlOfNetworkId(netId)
+			end
+
+			local entity = NetworkGetEntityFromNetworkId(netId)
+
+			DeleteEntity(entity)
 			SpawnedSpikes[i] = nil
 			SpikesSpawned = false
 		end
