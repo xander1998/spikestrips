@@ -1,5 +1,6 @@
 local SpawnedSpikes = {}
 local SpikesSpawned = false
+local DeleteDeadSpikes = true
 
 
 --[[ Looped Thread ]]--
@@ -33,7 +34,7 @@ AddEventHandler("Spikestrips:SpawnSpikes", function(config, amount)
 				local plyHead = GetEntityHeading(GetPlayerPed(PlayerId()))
 				local spike = CreateObject(GetHashKey("P_ld_stinger_s"), plyCoords.x, plyCoords.y, plyCoords.z, true, 1, true)
 				local spikeHeight = GetEntityHeightAboveGround(spike)
-				SetEntityCoords(spike, plyCoords.x, plyCoords.y, plyCoords.z - spikeHeight + 0.05, 0.0, 0.0, 0.0, 0.0)
+				SetEntityCoords(spike, plyCoords.x, plyCoords.y, plyCoords.z - spikeHeight + 0.05, 0.0, 0.0, 0.0, 0)
 				SetEntityHeading(spike, plyHead)
 				SetEntityAsMissionEntity(spike, 1, 1)
 				SetEntityCollision(spike, false, false)
@@ -65,17 +66,22 @@ AddEventHandler("Spikestrips:RemoveSpikes", function()
 		for i = 1, #SpawnedSpikes do
 			local netId = NetworkGetNetworkIdFromEntity(SpawnedSpikes[i])
 
+			Citizen.Trace("Requesting Control of Entity")
 			NetworkRequestControlOfNetworkId(netId)
 			while not NetworkHasControlOfNetworkId(netId) do
+				Citizen.Trace("Waiting For Control of Entity")
 				Citizen.Wait(0)
 				NetworkRequestControlOfNetworkId(netId)
 			end
+			Citizen.Trace("You Have Control of Entity")
 
 			local entity = NetworkGetEntityFromNetworkId(netId)
 
 			DeleteEntity(entity)
+			Citizen.Trace("Deleted Entity")
 			SpawnedSpikes[i] = nil
 			SpikesSpawned = false
+			DeleteDeadSpikes = true
 		end
 	end
 end)
@@ -152,13 +158,30 @@ function CheckPedRestriction(ped, PedList)
 	return false
 end
 
+function DisplayNotification(string)
+	SetTextComponentFormat("STRING")
+	AddTextComponentString(string)
+	DisplayHelpTextFromStringLabel(0, 0, 1, -1)
+end
+
 Citizen.CreateThread(function()
 	while true do
 		Citizen.Wait(0)
 		if SpikesSpawned then
 			for i = 1, #SpawnedSpikes do
 				FreezeEntityPosition(SpawnedSpikes[i], true)
+				DisplayNotification("Press ~INPUT_CHARACTER_WHEEL~ + ~INPUT_PHONE~" .. " to remove spike strips.")
 			end
+		end
+
+		if SpikesSpawned and IsControlPressed(1, 19) and IsControlJustPressed(1, 27) then
+			TriggerEvent("Spikestrips:RemoveSpikes")
+		end
+
+		if SpikesSpawned and IsEntityDead(GetPlayerPed(PlayerId())) and DeleteDeadSpikes then
+			DeleteDeadSpikes = false
+			TriggerEvent("Spikestrips:RemoveSpikes")
+			Citizen.Trace("Auto Deleting Spikes")
 		end
 	end
 end)
