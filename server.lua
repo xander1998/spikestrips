@@ -5,7 +5,6 @@ RegisterCommand("setspikes", function(source, args, raw)
     local src = source
 
 	if(args[1] == nil) then
-		print('Is blank!')
 		args[1] = 2
 	end
         
