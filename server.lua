@@ -4,6 +4,10 @@
 RegisterCommand("setspikes", function(source, args, raw)
     local src = source
 
+	if(args[1] == nil) then
+		args[1] = 2
+	end
+        
     if tonumber(args[1]) <= SpikeConfig.MaxSpikes then
         SpawnSpikestrips(src, args[1])
     end
